@@ -1,0 +1,21 @@
+The Three States
+=================
+
+modified in Working Directory
+updated in the Staging Area
+committed in the Git Directory (Repository)
+
+
+Config
+======
+
+3 different conf files: 
+/etc/gitconfig (all users)
+~/.gitconfig (my user)
+config in git directory (project specific)
+
+git config --global core.editor emacs
+git config --global merge.tool meld
+
+# show current settings
+git config --global core.editor emacs
