@@ -1,14 +1,11 @@
 The Three States
 =================
-
 modified in Working Directory
 updated in the Staging Area
 committed in the Git Directory (Repository)
 
-
 Config
 ======
-
 3 different conf files: 
 /etc/gitconfig (all users)
 ~/.gitconfig (my user)
@@ -19,3 +16,40 @@ git config --global merge.tool meld
 
 # show current settings
 git config --global core.editor emacs
+
+Basics
+======
+
+Removing
+--------
+# stage file removal 
+git rm <file>
+
+# if the file is staged:
+git rm -f <file>
+
+# to unstage
+git rm --cached <file>
+
+History
+-------
+# see commits history
+git log
+git log -p -2 (last 2 commits with diff -- p for patch)
+git log --stat (details of modifs for each file)
+git log --pretty=online
+git log --pretty=format:"<format_string>"
+git log --graph
+git log --since=2.weeks
+git log --after=date
+
+Undoing things
+--------------
+# fixing a previous commit
+git commit --amend
+
+# unstage a file
+git reset HEAD <file>
+
+# unmodify a modified file (modifs are lost)
+git checkout -- <file>
