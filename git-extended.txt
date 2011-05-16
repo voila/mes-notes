@@ -19,7 +19,6 @@ git config --global core.editor emacs
 
 Basics
 ======
-
 Removing
 --------
 # stage file removal 
@@ -53,3 +52,66 @@ git reset HEAD <file>
 
 # unmodify a modified file (modifs are lost)
 git checkout -- <file>
+
+Working with remotes
+--------------------
+# show you remotes
+git remote -v
+
+# adding a remote
+git remote add [shortname] [url]
+
+git remote add pb git://github.com/... 
+git fetch pb # now can use pn instead of url
+
+# fetching and pulling
+git fetch [remote-name] # get all data, branches, etc... but does not merge
+git pull # fetch and merge into the current branch
+
+# pushing
+git push [remote-name] [branch-name]
+
+# inspecting
+git remote show [remote-name]
+
+# removing and renaming
+git remote rename pb paul # (rename remote branches too: pb/master => paul/master) 
+
+Tagging
+-------
+# listing
+git tag
+
+# creating tags
+lightweight: like a branch that never changes
+annotated: extra metadata is stored (use -a)
+
+git tag -a v1.4 -m 'my message ...'
+git show v1.4
+
+git tag -s v1.4 -m 'my message ...' # sign with GPG
+
+# verifying tags
+git tag -v [tag-name]
+
+#tagging later
+
+git log --pretty=oneline
+git tag -a v1.2 9fceb02
+
+# sharing tags
+git push origin [tag-name]
+git push origin --tags
+
+Misc
+-----
+
+# aliases
+
+git config --global alias.unstage 'reset HEAD --'
+git unstage fileA
+git reset HEAD fileA
+
+git config --global alias.last 'log -1 HEAD'
+
+git config --global alias.visual "!gitk"  # run external comand
