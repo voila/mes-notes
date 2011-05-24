@@ -1,0 +1,158 @@
+CLOJURE
+
+;; def and defn
+
+;; symbol
+
+'d
+
+;; keyword
+
+:5
+
+;; let / destructuring
+
+(let [x 6] (println x))
+
+(def board [[:x :o :x][:o :x :o][:o :x :o]])
+(let [[_ [_ c _] _] board] (println c))   
+
+(def person {:name "Manu", :profession "developer"})
+(let [{n :name, p :profession} person] (println n p))
+
+;; lists
+
+cons, first, rest, last, nth
+
+;; strings
+
+(str 'manu " is " "great!)
+
+;; vectors
+
+[1 2 3]
+
+;; maps
+
+{:name "manu", :age 37}
+
+;; sets
+
+(def family #{:manu :fiona :arlette})
+
+;; functions
+
+(defn double 
+  "This is a docstring"
+  [x] ;; parameters are in a vector 
+  (* 2 x))
+
+;; lambdas
+
+#(* 2 %)   ;; like (2 * _) in scala
+
+
+(apply + [1 2 3])
+
+;; loop/recur, TCO
+
+(loop [x 1] x) ;; like let
+
+(defn sum [x acc]                        
+  (if (= x 0) 
+      acc 
+      (sum (- x 1) (+ acc 1)))) 
+
+(sum 10000 0)     
+StackOverflowError   clojure.lang.Numbers.add (Numbers.java:3587)
+
+(defn sum [x acc]                        
+  (loop [x x, acc acc]                      
+  (if (= x 0)                               
+      acc                                   
+      (recur (- x 1) (+ acc 1)))))   
+
+user=> (sum 100000000 0)
+100000000
+
+;; list comprehensions
+(for [x '(1 2 3), y '("manu" "fiona" "arlette"), :when (even? x)]
+  (println  (str x " -> " y)))
+
+
+;; lazy-sequences
+
+
+;; macros
+
+
+(defmacro unless [test body] (list 'if (list 'not test) body))
+(defmacro unless [test body] `(if (not ~test) ~body)) 
+
+(macroexpand '(unless cond bod))
+>>> (if (not cond) bod)
+
+;; gensym
+user=> `(x#)
+(x__2136)
+
+;; Java interop
+
+(. javax.swing.JOptionPane (showMessageDialog nil "Hello World"))
+(javax.swing.JOptionPane/showMessageDialog nil "Hello World") 
+
+(.toUpperCase "fred")
+
+;; classes
+
+defrecord and defprotocol
+
+;;;; Concurrency
+* Software Transactional Memory (STM). STM provides a mechanism for managing references and updates across threads.
+* Agents. Agents provide a thread-safe mechanism for asynchronous, uncoordinated updates.
+* Atoms. Atoms provide for synchronous, uncoordinated updates.
+* Dynamic Vars. Dynamic Vars support thread-local state.
+
+;; STM / refs
+
+user=> (def m (ref "manu"))
+#'user/m
+user=> @m
+"manu"
+user=> (dosync (alter m (fn [x] "linda")))
+"linda"
+
+;; Atoms (thread safety for a single reference)
+
+(def m (atom "manu"))
+(reset! m "fiona")
+(swap! m (fn [x] "linda"))
+
+;; agents (async mutations)
+mutation happens in another thread
+reads do not lock or block
+
+(defn twice [x] (* 2 x))
+(def myagent (agent 1))
+(send myagent twice)
+@myagent
+
+;; futures
+
+returns a reference immediately
+
+(def fut (future (Thread/sleep 5000) "YO"))
+@fut ;; dereferencing will block until the result is available
+
+
+
+;; Debugging (edit the clj script)
+
+Better is to attach JSwat to a running instance of Clojure. You have to start Java with these flags to support remote debugging: java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n ...
+ 
+When Clojure starts it will print something like:
+Listening for transport dt_socket at address: 63657
+Clojure
+user=>
+
+Then in JSwat choose Attach... and put localhost for Host and the socket address for Port. In JSwat, open up some Clojure file you have loaded, (including boot.clj) and you can set breakpoints in Clojure source. Breakpoints, call stack, local variable views and step debugging (within Clojure code and from Clojure to Java and back) all work. You can also attach to Clojure when it is started as the inferior Lisp in Emacs. Best of all, if you change a .clj file and reload it, JSwat will pick up the changed file and you can set breakpoints etc in the new code without stopping and restarting JSwat or Clojure.

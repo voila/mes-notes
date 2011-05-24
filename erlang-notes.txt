@@ -1,0 +1,789 @@
+Integers
+
+2#1010  (base 2)
+16#EA   (base 16)
+
+-----------------------------
+Characters
+
+$Character returns the ASCII value of Character. 
+$a represents the integer 97
+
+-----------------------------
+Floats
+
+1.234E-10.
+
+-----------------------------
+The Shell
+.[Return]  to evaluate
+q().       to quit         
+
+-----------------------------
+Maths
+
+/   floating point division
+div integer division
+rem integer remainder
+
+−2 + 3 / 3 => 1.0
+
+-----------------------------
+Atoms
+
+Atoms start with a lowercase letter or are delimited by single quotes. Letters, digits,
+the “at” symbol (@), the full stop (.), and underscores (_) are valid characters if the
+atom starts with a lowercase letter. Any character code is allowed within an atom if the
+atom is encapsulated by single quotes. 
+
+Examples of atoms starting with a lowercase letter include:
+january fooBar alfa21 start_with_lower_case node@ramone true false
+
+When using quotes, examples include:
+'January' 'a space' 'Anything inside quotes{}#@ \n\012'
+'node@ramone.erlang-consulting.com'
+
+4> less<more.
+true
+
+Reserved atoms:
+after and andalso band begin bnot bor bsl bsr bxor case catch cond div end fun if let not of or orelse query receive rem try when xor
+
+-----------------------------
+Booleans
+
+the atoms true and false are used together with Boolean operators. 
+
+6> is_boolean(true).
+true
+
+Logical operators
+
+and     Returns true only if both arguments are true
+andalso Shortcut evaluation of and: returns false if the first argument is false, without evaluating the second
+or      Returns true if either of the arguments is true
+orelse  Shortcut evaluation of or: returns true if the first argument is true, without evaluating the second
+xor     “Exclusive or”: returns true if one of its arguments is true and the other false
+not     Unary negation operator: returns true if its argument is false, and vice versa
+
+
+-----------------------------
+Tuples
+
+In a tuple, when the first element is an atom, it is called a tag. This Erlang convention
+is used to represent different types of data, and will usually have a meaning in the
+program that uses it. For example, in the tuple {person, 'Joe', 'Armstrong'}  the atom
+person is the tag and might denote that the second field in the tuple is always the first
+name of the person, while the third is the surname.
+
+1> tuple_size({abc, {def, 123}, ghi}).
+3
+
+% elements of the tuple are indexed from 1 rather than zero.
+
+2> element(2,{abc, {def, 123}, ghi}).  
+{def,123}
+3> setelement(2,{abc, {def, 123}, ghi},def).
+{abc,def,ghi}
+
+4> {1,2}<{1,3}.
+true
+5> {2,3}<{2,3}.
+false
+6> {1,2}=={2,3}.
+false
+
+
+-----------------------------
+Lists
+
+Characters are represented by integers, and strings (of characters) are represented by
+lists of integers. The integer representation of a character is given by preceding the
+character with the $ symbol:
+
+20>[$H,$e,$l,$l,$o,$ ,$W,$o,$r,$l,$d]
+"Hello World"
+21> [72,101,108,108,111,32,87,111,114,108,100].
+"Hello World"
+
+a difference between atoms and strings is efficiency. Representation of a string
+takes up space proportional to the string’s size, whereas atoms are represented in a
+system table and take a couple of bytes to reference regardless of their size. 
+
+these are all equivalents:
+[one, two, three, four]
+[one, two, three, four|[]]
+[one, two|[three, four]]
+[one, two|[three|[four|[]]]]
+[one|[two|[three|[four|[]]]]]
+
+1> lists:max([1,2,3]).
+2> lists:reverse([1,2,3]).
+3> lists:sort([2,1,3]).
+4> lists:split(2,[3,4,10,7,9]).
+{[3,4],[10,7,9]}
+5> lists:sum([3,4,10,7,9]).
+6> lists:zip([1,2,3],[5,6,7]).
+[{1,5},{2,6},{3,7}]
+7> lists:delete(2,[1,2,3,2,4,2]).
+[1,3,2,4,2]
+8> lists:last([1,2,3]).
+9> lists:member(5,[1,24]).
+11> lists:nth(2,[3,4,10,7,9]).
+12> lists:length([1,2,3]).
+** exception error: undefined function lists:length/1
+13> length([1,2,3]).
+
+4> [1,2,3] ++ [4,5,6].  % also lists:append("r","e").
+[1,2,3,4,5,6]
+5> [1,2,2,3,4,4] -- [2,4].
+[1,2,3,4]
+
+When the ++ notation was added to the language, programmers went from using the
+append function to abusing the ++ operator. The ++ operator and the append function
+are expensive operations, as the list on the lefthand side of the expression has to be
+traversed. Not only are they expensive operations, but often they are redundant, as all
+I/O functions (including socket operations) in Erlang accept nonflat strings such as
+["Hello ",["Concurrent "]|"World"]. ( iolists )
+
+30> "Hello " "Concurrent " "World".
+"Hello Concurrent World"
+
+
+-----------------------------
+Term comparison
+
+The result of the expression is one of the Boolean atoms true or false. The
+equal (==) and not equal (/=) operators compare the values on either side of the operator
+without paying attention to the data types. 
+
+Operators exactly equal (=:=) and exactly not equal (=/=) compare not only the values on either side of the equation, but also their data types.
+
+If the expressions being compared are of different types, the following hierarchy is taken
+into consideration:
+number < atom < reference < fun < port < pid < tuple < list < binary
+
+Lists are ordered lexicographically
+
+5> [boo,hoo]<[adder,zebra,bee].
+false
+6> [boo,hoo]<[boo,hoo,adder,zebra,bee].
+true
+
+On the other hand, when comparing tuples, the number of elements in the constructs
+is compared first, followed by comparisons of the individual values themselves:
+
+7> {boo,hoo}<{adder,zebra,bee}.
+true
+8> {boo,hoo}<{boo,hoo,adder,zebra,bee}.
+true
+
+The ability to compare values from different data types allows you to write generic
+functions such as sort, where regardless of the heterogeneous contents of a list, the
+function will always be able to sort its elements.
+
+
+-----------------------------
+Variables
+
+Variables are used to store values of simple and composite data types. In Erlang, they
+always start with an uppercase letter,‡ followed by upper- and lowercase letters, inte-
+gers, and underscores. 
+
+All calls with variables in Erlang are call by value: all arguments to a function call are
+evaluated before the body of the function is evaluated. The concept of call by reference
+does not exist, removing one way in which side effects can be caused.
+
+Using f() forgets all variable bindings, whereas f(Variable)
+will unbind a specific Variable. You can use these operations only in the shell. 
+
+
+-----------------------------
+Pattern Matching
+
+Pattern matching in Erlang is used to:
+• Assign values to variables
+• Control the execution flow of programs
+• Extract values from compound data types
+
+5> [Head|Tail] = [1].
+** exception error: no match of right hand side value [1]
+6> [Head|Tail] = [1,2,3,4].
+[1,2,3,4]
+7> [Head1|Tail1] = [1].
+[1]
+8> Tail1.
+[]
+
+What goes wrong in command 5? It looks as though this should succeed, but the var-
+iables Head and Tail are bound already, so this pattern match becomes a test of whether
+the expression is in fact [1,2,3,4]; you can see in command 6 that this would succeed.
+
+We mentioned earlier that variables can start with an underscore; these denote “don’t
+care” variables, which are placeholders for values the program does not need. “Don’t
+care” variables behave just like normal variables—their values can be inspected, used,
+and compared. 
+The underscore on its own is also a “don’t care” variable, but its contents cannot be accessed: its values are ignored and never bound.
+
+
+-----------------------------
+Functions
+
+When defining a function, it is a good
+practice to make sure that for every argument there is one clause that succeeds; this is
+* In the case of the triangle, the area is calculated using Heron’s formula where math:sqrt/1 is used to give the
+square root of a float.
+ often done by making the final clause a catch-all clause that matches all (remaining)
+cases.
+
+
+-----------------------------
+Modules
+
+Functions are grouped together in modules.
+Modules are named using the –module(Name) directive.
+
+A module example
+
+-module(demo).
+-export([double/1]).
+
+% This is a comment.
+% Everything on a line after % is ignored.
+
+double(Value) -> times(Value, 2).
+times(X,Y) -> X*Y.
+
+The export directive contains a list of exported functions of the format
+Function/Arity. These functions are global, meaning they can be called from outside
+the module. 
+
+Global calls, also called fully qualified function calls, are made by prefixing the module
+name to the function. So, calling demo:double(2) would return 4. Local functions can be called only from within the module.
+
+Functions in Erlang are uniquely identified by their name, their arity, and the module
+in which they are defined. Two functions in the same module might have the same
+name but a different arity. If so, they are different functions and are considered unre-
+lated. There is no need to declare functions before they are called, as long as they are
+defined in the module.
+
+
+-----------------------------
+Compiling
+
+Once in the directory, you compile the code using c(Module) in the Erlang shell, omitting the erl suffix from the module name.
+
+A useful directive when programming is the –compile(export_all) directive, which at
+compile time will export all functions defined in the module. Another way of doing this
+is to specify an option on compiling the file:
+c(Mod,[export_all]).
+
+All attributes and other module information can be retrieved by calling
+Mod:module_info/0 or selectively calling the Mod:module_info/1 function. From the shell,
+you can use the m(Module) command:
+
+5> demo:module_info().
+[{exports,[{double,1},{module_info,0},{module_info,1}]},
+{imports,[]},
+{attributes,[{vsn,[74024422977681734035664295266840124102]}]},
+{compile,[{options,[]},
+{version,"4.5.1"},
+{time,{2008,2,25,18,0,28}},
+{source,"/home/francesco/examples/demo.erl"}]}]
+
+6> m(demo).
+Module demo compiled: Date: February 25 2008, Time: 18.01
+Compiler options: []
+Object file: /home/francesco/examples/demo.beam
+Exports:
+double/1
+module_info/0
+module_info/1
+ok
+
+
+-----------------------------
+Case Construct
+
+case conditional-expression of
+  Pattern1 -> expression1, expression2, .. ;,
+  Pattern2 -> expression1, expression2, .. ;
+  ... ;
+  Patternn -> expression1, expression2, ..
+end
+
+case lists:member(foo, List) of
+  true -> ok;
+  false -> {error, unknown_element}
+end
+
+
+-----------------------------
+If Construct
+
+if
+  Guard1 -> expression11, expression12, .. ;
+  Guard2 -> expression21, expression22, .. ;
+  ... ;
+  Guardn -> expressionn1, expressionn2, ..
+end
+
+if
+  X < 1 -> smaller;
+  X > 1 -> greater;
+  X == 1 -> equal
+end
+
+If none of the guards evaluates to the atom true, a runtime error is generated. To get a
+catch-all clause, you can allow the last clause to have the atom true as the guard;
+
+The guard expressions are a subset of the Erlang Boolean expressions that can only
+contain calls to a restricted set of functions together with comparisons and arithmetic
+operations.
+
+The individual guard expressions can be built using the following constructs:
+• Bound variables
+• Literal Erlang terms denoting data values including numbers, atoms, tuples, lists,
+and so forth
+• Type tests, such as is_binary, is_atom, is_boolean, is_tuple, and so on
+• Term comparisons using ==, =/=, <, >, and so on, as listed in Chapter 2
+• Arithmetic expressions built using the arithmetical operators given in Chapter 2
+• Boolean expressions as described in Chapter 2
+• Guard built-in functions
+
+Erlang allows simple logical combinations of guards to be written in a different way:
+• Separating individual guard expressions with a comma (,) gives their conjunction,
+so that such a sequence evaluates to true only if all expressions in the sequence
+evaluate to true.
+• Separating individual expressions (or indeed, comma-separated conjunctions)
+with a semicolon ( ;) gives their disjunction, where the sequence evaluates to true
+if any expression evaluates to true.
+
+
+-----------------------------
+Built-in Functions
+-----------------------------
+Object Access and Examination
+
+hd/1
+  Returns the first element of a list
+tl/1
+  Returns the remaining elements when the first element has been removed
+length/1
+  Returns the length of a list
+tuple_size/1
+  Returns the number of elements in a tuple
+element/2
+  Returns the nth element of a tuple
+setelement/3
+  Replaces an element in a tuple, returning the new tuple
+erlang:append_element/2
+  Adds an element to the tuple, as the final element
+
+-----------------------------
+Type Conversion
+
+atom_to_list/1, list_to_atom/1, list_to_existing_atom/1
+  All convert atoms to strings and back. If the atom was not previously used by
+  the runtime system in the current session, calling the function
+  list_to_existing_atom/1 will fail.
+list_to_tuple/1, tuple_to_list/1
+  Both convert between the two data types.
+float/1, list_to_float/1
+  Both create a float, one with an integer parameter and the other from a string.
+float_to_list/1, integer_to_list/1
+  Both return strings.
+round/1, trunc/1, list_to_integer/1
+  All return integers.
+
+-----------------------------
+Process Dictionary
+
+There is a set of BIFs that allow functions to store values associated with a key and later
+retrieve them in other parts of the program; this set of BIFs is called the process dic-
+tionary. The retrieval and manipulation of these values unfortunately introduces global
+variables into Erlang
+
+-----------------------------
+Meta Programming
+
+One often refers to the ability of a function to determine what other function to call at
+runtime as meta programming, that is, programs that create other programs and run
+them. For this use, we have the apply/3 function that takes three arguments, namely a
+module name, an exported function name, and a list of arguments. When called, it
+executes the named function on the specified arguments and returns its result.
+
+1> Module = examples.
+examples
+2> Function = even.
+even
+3> Arguments = [10].
+[10]
+4> apply(Module, Function, Arguments).
+true
+
+If the number of arguments is known at compile time, you can use the following no-
+tation (if there are two arguments): Mod:Fun(Arg1, Arg2)
+instead of the more general apply(Mod,Fun,[Arg1,Arg2]). 
+
+-----------------------------
+Process, Port, Distribution, and System Information
+
+The date/0 function returns the current date as a tuple of {Year, Month, Day}, and the
+time/0 function returns the current time as a tuple of {Hour, Minute, Second}. The
+now/0 function returns a tuple of {MegaSeconds, Seconds, MicroSeconds} that have
+passed since midnight, January 1, 1970.
+
+The now/1 BIF will always return a unique value
+in a particular Erlang node, even if called more than once in the same microsecond. As
+a result, it can be used as a unique identifier.
+
+-----------------------------
+Input and Output
+
+The io module provides input and output from an Erlang program. 
+Each function can take a file handle (of type io_device()) as an additional (first) argu-
+ment: file operations are defined in the file module.
+
+To read a line from standard input, use io:get_line/1, which takes a prompt string (or
+atom) as its input:
+
+1> io:get_line("gissa line>").
+gissa line>lkdsjfljasdkjflkajsdf.
+"lkdsjfljasdkjflkajsdf.\n"
+
+It is also possible to read a specified number of characters:
+
+2> io:get_chars("tell me> ",2).
+tell me> er
+"er"
+
+The most useful input function is io:read/1, which reads an Erlang term (i.e. a fully evaluated value) from standard input:
+
+3> io:read("ok, then>>").
+ok, then>>atom.
+{ok,atom}
+4> io:read("ok, then>>").
+ok, then>>{2,tue,{mon,"weds"}}.
+{ok,{2,tue,{mon,"weds"}}}
+5> io:read("ok, then>>").
+ok, then>>2+3.
+{error,{1,erl_parse,"bad term"}}
+
+Output in Erlang is provided by io:write/1, which will print an Erlang term, but the
+function most commonly used is io:format/2, which provides formatted output.
+
+io:format takes the following:
+• A formatting string (or binary) that controls the formatting of the arguments
+• A list of values to be printed
+
+The formatting string contains characters that are printed as they are with control se-
+quences for formatting.
+Control sequences begin with a tilde (~), and the simplest form is a single character,
+indicating the following:
+~c
+  An ASCII code to be printed as a character.
+~f
+  A float to be printed with six decimal places.
+~e
+  A float to be printed in scientific notation, showing six digits in all.
+~w
+  Writes any term in standard syntax.
+~p
+  Writes data as ~w, but in “pretty printing” mode, breaking lines in appropriate
+  places, indenting sensibly, and outputting lists as strings where possible.
+~W, ~P
+  Behave as ~w, ~p, but eliding structure at a depth of 3. These take an extra argument
+  in the data list indicating the maximum depth for printing terms.
+~B
+  Shows an integer to base 10.
+
+
+1> List = [72,101,108,108,111,32,87,111,114].
+"Hello Wor"
+2> io:format("~p~n",[List]).
+"Hello Wor"
+ok
+3> io:format("~w~n",[List]).
+[72,101,108,108,111,32,87,111,114]
+ok
+
+
+-----------------------------
+Runtime Errors
+
+function_clause
+  This is returned when none of the existing function patterns match in the called
+  function. This error normally occurs when you have either forgotten a case in your
+  case analysis or inadvertently called the function with the wrong argument:
+
+factorial(N) when N > 0 ->
+  N * factorial(N - 1);
+factorial(0) -> 1.
+1> test:factorial(-1).
+** exception error: no function clause matching test:factorial(-1)
+
+case_clause
+  This is returned when none of the existing patterns in the case construct match.
+  The most common reason for this is that you have forgotten one or more possible
+  cases:
+
+test1(N) ->
+  case N of
+    −1 -> false;
+    1 -> true
+  end.
+1> test:test1(0).
+** exception error: no case clause matching 0 in function test:test1/1
+
+if_clause
+  This is returned when none of the existing expressions in the if construct evaluate
+  to true. As this is really a simplified case construct, the error is typically caused by
+  a missing pattern:
+
+test2(N) ->
+  if
+    N < 0 -> false;
+    N > 0 -> true
+  end.
+1> test:test2(0).
+** exception error: no true branch found when evaluating an if expression in function foo:test2/1
+
+badmatch
+  Errors occur in situations when pattern matching fails and there are no other al-
+  ternative clauses to choose from. For the badmatch exception, it is very hard to point
+  to a single cause, but one recurrent cause is when you inadvertently try to bind a
+  variable that is already bound, as in the following:
+
+1> N=45.
+45
+2> {N,M}={23,45}.
+** exception error: no match of right hand side value {23,45}
+
+badarg
+  This is returned when a BIF is called with the wrong arguments. In the following
+  example, length requires a list, but is called with an atom
+
+1> length(helloWorld).
+** exception error: bad argument in function length/1 called as length(helloWorld)
+
+undef
+  This is returned if the global function being called is not defined or exported. The
+  cause of this exception is often that you have misspelled the function name, or have
+  called the function without prepending the module name to the function call:
+
+1> test:hello().
+** exception error: undefined function test:hello/0
+
+badarith
+  This is returned when arithmetical operations are executed with an inappropriate
+  argument, such as nonintegers or floats or trying to divide by zero:
+
+1> 1+a.
+** exception error: bad argument in an arithmetic expression in operator +/2 called as 1 + a
+
+
+-----------------------------
+Handling Errors
+
+Using try ... catch
+
+try Exprs of
+  Pattern1 [when Guard1] -> ExpressionBody1;
+  Pattern2 [when Guard2] -> ExpressionBody2
+catch
+  [Class1:]ExceptionPattern1 [when ExceptionGuardSeq1] ->
+    ExceptionBody1;
+  [ClassN:]ExceptionPatternN [when ExceptionGuardSeqN] ->
+    ExceptionBodyN
+end
+
+Example:
+
+X=2.
+try (X=3) of  % badmatch error
+  Val -> {normal, Val}
+catch
+  _:_ -> 43
+end.
+
+
+
+4> try (X=3) of
+4> Val -> {normal, Val}
+4> catch
+4> error:Error -> {error,Error}
+4> end.
+{error,{badmatch,3}}
+
+throw allows us to execute a nonnormal return within a try ... catch statement:
+
+5> try (throw(non_normal_return)) of
+5>   Val -> {normal, Val}
+5> catch
+5>   throw:Error -> {throw, Error}
+5> end.
+{throw,non_normal_return}
+
+Classes of error
+
+error
+ This is the principal class of errors, and you saw the various types of runtime errors
+ in the preceding section; error can also be raised by calling the BIF
+ erlang:error(Term).
+
+throw
+ This is the class that is generated by an explicit call to throw an exception, which
+ will be caught by an enclosing try ... catch expression. Use of throw in Erlang is
+ discouraged, because it makes understanding program behavior substantially more
+ difficult.
+
+exit
+ This can be raised by calling the exit/1 BIF, invoked with a reason for termination;
+ exits can also be produced by an exit signal.
+
+
+Using catch
+
+The catch expression allows you to trap when runtime errors occur. The format of this
+is catch expression, where if the expression evaluates correctly it returns the value of
+the expression. But if a runtime error occurs, it returns the tuple {'EXIT', Error}, where
+Error contains information on the runtime error.
+
+
+-----------------------------
+Useful Modules
+
+array
+  The array module contains an abstract data type for functional, extensible arrays.
+  They can have a fixed size, or grow as needed. The module contains functionality
+  to set and inspect values as well as to define recursions over them.
+
+calendar
+  The calendar module provides functions to retrieve local and universal times as
+  well as providing time conversions for the day of the week, date, and time. Time
+  intervals can be computed, ranging from dates down to a microsecond granularity.
+  The calendar module is based on the Gregorian calendar and the now/0 BIF.
+
+dict
+  The dict module is a simple key value dictionary, which allows you to store, re-
+  trieve, and delete elements, merge dictionaries, and traverse them.
+
+erlang
+  All BIFs are considered to be implemented in the erlang module. The manual page
+  for this module lists all of the Erlang BIFs, differentiating between the generic ones
+  and the ones that are specific to the VM, and therefore those that are auto-imported
+  and those that are not.
+
+file
+  The file module provides an interface to the filesystem, allowing you to read,
+  manipulate, and delete files.
+
+filename
+  The filename module allows you to write generic file manipulation and inspection
+  functions that will work regardless of the file notation used by the underlying op-
+  erating system.
+
+io
+  The io library module encapsulates the standard I/O server interface functions,
+  allowing you to read and write strings to I/O devices, including stdout.
+
+lists
+  The lists list-manipulation module is without a doubt the most used library mod-
+  ule in all major Erlang systems. It provides functions for inspecting, manipulating,
+  and processing lists.
+
+math
+  All of the standard mathematical functions, including pi/0, sin/1, cos/1, and
+  tan/1, are implemented in the math library module.
+
+queue
+  The queue module implements an abstract data type for FIFO queues.
+
+random
+  The random module, given a seed, provides a pseudorandom number generator.
+
+string
+  The string module contains an array of string processing functions. It differentiates
+  itself from the lists module in that it takes into consideration the fact that the
+  contents of the lists are ASCII characters.
+
+timer
+  The timer module contains functions that relate to time, including generation of
+  events and conversion of various time formats to milliseconds, the main unit used
+  by this module.
+
+
+-----------------------------
+The Debugger
+
+You start the debugger by typing debugger:start() and a monitor window appears.
+This window displays a list of trace-compiled modules, attached (traced) processes,
+and other debug-related settings (see Figure 3-2).
+
+To trace a module, you first need to compile it with the debug_info flag. In your Unix
+shell, you do that using the following command:
+erlc +debug_info Module.erl
+
+From the Erlang shell, use either of the following two commands:
+c(Module, [debug_info]).
+compile:file(exception, [debug_info]).
+
+
+
+CONCURRENCY
+
+-----------------------------
+Creating processes
+
+Pid2 = spawn(Module, Function, Arguments).
+
+You can use the shell command i() to find out what the currently executing processes in the runtime system are doing.
+
+-----------------------------
+Message Passing
+
+id ! Message 
+
+where Pid is a valid process identifier and Message is avalue from any Erlang data type
+
+-----------------------------
+Receiving Messages
+
+Messages are retrieved from the process mailbox using the receive clause. The
+receive clause is a construct delimited by the reserved words receive and end, and contains a number of clauses.
+
+receive
+ Pattern1 when Guard1 -> exp11, .., exp1n;
+ Pattern2 when Guard2 -> exp21, .., exp2n;
+ ...
+ Other -> expn1, .., expnn
+end
+
+-----------------------------
+Registered Processes
+
+It is not always practical to use pids to communicate with processes. To use a pid, a process needs to be notified of it and store its value. It is common to register processes that offer specific services with an alias, a name that can be used instead of the pid. You register a process with the register(Alias, Pid) BIF, where Alias is an atom and Pid is the process identifier. You do not have to be a parent or a child of the process to call
+the register BIF; you just need to know its process identifier.
+
+Sending messages to nonexistent registered processes causes the calling process to terminate with a badarg (see Figure 4-10). This behavior is different from sending a message to a process identifier for a nonexistent process, as registered processes are assumed to provide a service. The absence of a registered process is therefore treated as a bug. 
+
+
+-----------------------------
+Timeouts
+
+You saw that if a process enters a receive statement and none of the messages matches, the process will get suspended.In most cases, though, all you want to do is check the mailbox, and if nothing has arrived, continue with your household chores. Erlang processes can do just
+that by using the receive ... after construct:
+
+receive
+  Pattern1 when Guard1 -> exp11, .., exp1n;
+  Pattern2 when Guard2 -> exp21, .., exp2n;
+  ...
+  Other -> expn1, .., expnn
+after
+  Timeout -> exp1, .., expn
+end
+
+
+
+When a process reaches the receive statement and no messages pattern-match, it will wait for Timeout milliseconds. If after Timeout milliseconds no message has arrived, the expressions in the body of the after clause are executed. Timeout is an integer denoting the time in milliseconds, or the atom infinity. Using infinity as a timeout value is the same as not including the after construct.
