@@ -1,0 +1,70 @@
+Ocaml notes
+-----------
+
+
+Records
+-------
+# type person = { age: int; name : string };; 
+type person = { age : int; name : string; }
+# let manu = { age = 37; name = "Emmanuel" };;
+val manu : person = {age = 37; name = "Emmanuel"}
+# manu.age ;;
+- : int = 37
+
+# type person = { age: int; mutable name : string };; 
+type person = { age : int; mutable name : string; }
+# let manu = { age = 37; name = "Emmanuel" };;
+val manu : person = {age = 37; name = "Emmanuel"}
+# manu.name <- manu.name ^ " Delaborde";;
+- : unit = ()
+# manu.name ;;
+- : string = "Emmanuel Delaborde"
+
+
+References
+----------
+
+# let name = ref "Manu" ;;
+val name : string ref = {contents = "Manu"}
+# name.contents ;;
+- : string = "Manu"
+# name := !name ^ " Delaborde" ;; 
+(* or *)
+# name.contents <- !name ^ " Delaborde" ;;
+- : unit = ()
+# name ;;
+- : string ref = {contents = "Manu Delaborde"}
+# !name ;;
+- : string = "Manu Delaborde"
+
+
+Arrays
+------
+# let a = [| 1; 2; 3 |] ;; 
+val a : int array = [|1; 2; 3|]
+# a.(2) ;;
+- : int = 3
+# a.(2) <- 4 ;;
+- : unit = ()
+# a ;;
+- : int array = [|1; 2; 4|]
+
+
+Exceptions
+----------
+exception Crash of string;;
+exception Crash of string
+# let f _ = raise (Crash "Bad Weather!");;
+val f : 'a -> 'b = <fun>
+# f () ;;
+Exception: Crash "Bad Weather!".
+# let g _ = try f () with 
+  Crash s -> print_string "Error: crash caused by "; print_string s ;;
+val g : 'a -> unit = <fun>
+# g () ;;
+Error: crash caused by Bad Weather!
+- : unit = ()
+
+
+Modules
+-------
