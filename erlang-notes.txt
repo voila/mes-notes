@@ -40,7 +40,9 @@ Examples of atoms starting with a lowercase letter include:
 january fooBar alfa21 start_with_lower_case node@ramone true false
 
 When using quotes, examples include:
-'January' 'a space' 'Anything inside quotes{}#@ \n\012'
+'January' 
+'a space' 
+'Anything inside quotes{}#@ \n\012'
 'node@ramone.erlang-consulting.com'
 
 4> less<more.
@@ -739,6 +741,7 @@ Creating processes
 Pid2 = spawn(Module, Function, Arguments).
 
 You can use the shell command i() to find out what the currently executing processes in the runtime system are doing.
+while the processes() command lists all the running processes.
 
 -----------------------------
 Message Passing
@@ -768,6 +771,7 @@ the register BIF; you just need to know its process identifier.
 
 Sending messages to nonexistent registered processes causes the calling process to terminate with a badarg (see Figure 4-10). This behavior is different from sending a message to a process identifier for a nonexistent process, as registered processes are assumed to provide a service. The absence of a registered process is therefore treated as a bug. 
 
+the shell command regs() lists the registered processes
 
 -----------------------------
 Timeouts
@@ -787,3 +791,650 @@ end
 
 
 When a process reaches the receive statement and no messages pattern-match, it will wait for Timeout milliseconds. If after Timeout milliseconds no message has arrived, the expressions in the body of the after clause are executed. Timeout is an integer denoting the time in milliseconds, or the atom infinity. Using infinity as a timeout value is the same as not including the after construct.
+
+
+
+Process Designs Patterns
+
+----------------------------------
+
+
+Process Error Handling
+
+----------------------------------
+
+
+Records and Macros
+
+----------------------------------
+
+----------------------------------
+Records
+----------------------------------
+
+-record(person, {name, age, phone}).      % introduce a record type 'person'
+-record(person, {name, age=0, phone=""}). % with default values
+
+#person{name="joe", age=21, phone="999-999"}
+
+P = #person{name="Fred"}
+P#person.age                    % access    
+NewPerson = P#person{age=37}    % modify
+
+-----------------------------------
+Pattern matching over records
+
+birthday(#person{age=Age} = P) ->
+   P#person{age=Age+1}.
+
+------------------------------------
+Records in the shell
+
+rr(moduleName).           % list all records definitions in moduleName
+rd(name, {field1, ...}).  % defines a record in the shell
+rl().                     % list all record definition visible in the shell
+rf(RecordName), rf()      % forget one or all record definitions in the shell
+
+
+c(Module,['E']). % compiles the records in Module to Module.E
+
+----------------------------------
+Macros
+----------------------------------
+-define(TIMEOUT, 1000).
+
+receive 
+  after ?TIMEOUT -> ok 
+end
+
+
+-ifdef(debug).
+ -define(DBG(Str, Args), io:format(Str, Args)).
+-else.
+ -define(DBG(Str, Args), ok).
+-endif.
+
+c(Module,[{d,debug}]). % set the flag debug
+c(Module,[{u,debug}]). % unset the flag debug
+
+or compile:file(Module,[{d,debug}]).
+
+c(Module,['P']). % applies epp to a file (macro-expand)
+
+
+Include Files
+------------------------------------
+it is customary to put record and macros in a separate file to make
+the definitions available to more than one module.
+
+-include("File.hrl").
+
+by default the compiler first looks for include in the current
+directory, and the directory of the script being compiled.
+
+c(Module, [{i, Dir}]). % adds a path to the include paths list
+
+
+
+------------------------------------
+Software Upgrade
+
+
+fully-qualified function calls, will switch to updated (current) module, whereas
+non qualified calls will refer to old module (old and current refer to the order the
+modules were loaded in the runtime system).
+
+Code is loaded:
+  - by calling a function in a module not-yet loaded
+  - when compiling a module, compile:file(Module) or c(Module) in the shell
+  - code:load_file(Module) or l(Module) in the shell
+  
+To see if a module is loaded:
+  - try auto-completion (tabbing) in the shell
+  - code:is_loaded(Module) returns locationof beam file or false
+
+
+The Code Server
+-------------------------------------
+
+It searches sequentially a list of directories (the code search path), starting with 
+the current work directory, for the compiled version of the module to load in the virtual machine.
+
+code:get_path(). %% view the default search paths
+
+Default directories will include all the library applications which comes as part of Erlang/OTP
+(in $ERLANGROOT/lib directory)
+
+code:root_dir() %% find out the Erlang root directory.
+
+You can add directories to the code search path by using:
+
+code:add_patha(Dir) % at the begining of the list
+or erl -pa Path (when starting the shell)
+
+code:add_pathz(Dir) % at the end of the list
+or erl -pz Path
+
+
+Shell Modes
+---------------------------------------
+erl -mode Mode %% Mode is either embedded or interactive (default)
+
+in interactive mode, only the runtime systems modules are loaded, other modules
+are dynamically loaded when a fully qualified function is called
+
+in embedded mode, all the modules listed in a binary boot file are loaded. 
+Calls to unloaded modules are runtime errors.
+
+
+Purging
+---------------------------------------
+code:purge(Module)  %% related processes are terminated, then module is removed
+
+code:soft_purge(Module) %% only remove the old module if no related processes are running
+
+
+
+
+
+
+
+
+
+Binaries
+----------------------
+Defaults
+
+The default type for a segment is integer. The default type does not depend on the value, even if the value is a literal. For instance, the default type in '<<3.14>>' is integer, not float.
+
+The default Size depends on the type. For integer it is 8. For float it is 64. For binary it is all of the binary. In matching, this default value is only valid for the very last element. All other binary elements in matching must have a size specification.
+
+The default unit depends on the the type. For integer and float it is 1. For binary it is 8.
+
+The default signedness is unsigned.
+
+The default endianness is big.
+
+3> <<X:2, _:2>> = <<5:4>>.
+<<5:4>>
+4> X.
+1
+5> <<X:2/bitstring, _:2>> = <<5:4>>.
+** exception error: no match of right hand side value <<5:4>>
+6> f().
+ok
+7> <<X:2/bitstring, _:2>> = <<5:4>>.
+
+
+
+
+
+
+
+----------------------------------------------
+ETS tables
+
+
+Creating tables
+---------------
+TabId = ets:new(TableName, [named_table, Sort, {keypos, Pos}, AccessControl])
+
+named_table: TableName can be used to access the table (otherwise use TabId)
+Sort: set (default), ordered_set, bag, duplicate_bag
+AccessControl: private, protected (default), public
+Pos: index of the table key in the rows (default: 1)
+
+ets:delete(TabId)           % tables are not GCed (the owner process can delete it or transfer ownership)
+
+ets:info(TabId | TableName) % returns the attribute of the given table
+
+
+Handling table elements
+-----------------------
+true = ets:insert(TabId, {alison, sweden})
+true = ets:insert(TabId, {alison, italy})  % insertion will overwrite old entry
+[{alison, italy}] = ets:lookup(TabId, alison)
+
+
+Traversing tables
+-----------------
+ets:first(TabId)     % return first key in table
+ets:next(TabId, Key) % return key after Key, returns '$end_of_table' when the table is completely traversed.
+
+ets:last(TabId) % returns last element in an ordered_set table (otherwise, the first element)
+
+Concurrent updates
+------------------
+If other processes execute destructive calls to ETS table while it is traversed with ets:first/1 and ets:next/2
+use ets:safe_fixtable(TabRef, true) (guarantees that during traversal an element is only once -- does not guarantees that all elements will be accessed however). Do not forget to release the table after fixing it, otherwise deleted elements won't be removed.
+
+
+Querying with match
+-------------------
+for example:
+
+ets:new(countries, [bag, named_table]).
+ets:insert(countries, {yves, france, cook}).
+ets:insert(countries, {manu, france, bartender}).
+ets:insert(countries, {joe, england, doctor}).
+ets:insert(countries, {marco, italy, cook}).
+
+ets:match(countries, {'$1',france, '_'}). % '_' wildcard match, '$0' or '$1' variable bindings 
+=> [[yves],[manu]]
+ets:match(countries, {'$1','$0', cook}).
+=> [[italy,marco],[france,yves]]
+ets:match(countries, {'$0','$1', cook}).
+=> [[marco,italy],[yves,france]]
+
+ets:match_object(countries, {'_',france, '_'}). % return the entire tuples
+=>[{manu,france,bartender},{yves,france,cook}]
+
+ets:match_delete(countries, {'_',france, '_'}). % delete the matching objects
+=> true
+ets:match_object(countries, {'_',france, '_'}).
+=> []
+
+NOTE: match operations are implementeds as BIFs (and as such are executed atomically), they can therefore stop
+other processes from executing until the operation has traversed the whole table and disrupt the real-time properties
+of your system (it's best to use first/1 and next/2 in that case).
+
+
+Querying with select
+--------------------
+a match specification is an Erlang Term that describes a small program
+
+example:
+ets:select(countries,
+	[{{'$1','$2','$3'},       % binding pattern
+	  [{'/=','$3',cook}],     % list of guard expressions in prefix form
+          [['$2','$1']]}]).       % the return expression
+=> [[france,manu],[england,joe]]
+
+
+ets:fun2ms/1 takes a fun as an argument describing the match we want to execute on the table together
+with the return values we want
+
+MS = ets:fun2ms(fun({Name, Country, Job}) when Job /= cook -> [Country, Name] end).
+=> [{{'$1','$2','$3'},[{'/=','$3',cook}],[['$2','$1']]}]
+ets:select(countries, MS).
+=> [[france,manu],[england,joe]]
+
+
+Other operations
+--------------------
+ets:tab2file(TableId | TableName, FileName) % dumps table into a file
+ets:file2tab(FileName)                      % reads a dumped table back in -> {ok, Tab} | {error, Reason}
+ets:tab2list(TableId | TableName)           % returns a list of the elements
+ets:i()                                     % info about all the ETS tables seen by the current process
+
+
+Records and ETS tables
+----------------------
+The default key position in ETS is the first element of the tuple.
+In records that position is reserved for the record type, so you need to explicitely state the key position
+
+
+rd(rec, {name, country, job}).
+ets:new(countries, [named_table, {keypos, #rec.name}]).
+ets:insert(countries, #rec{name=manu, country=france, job=bartender}).
+ets:lookup(countries, manu).
+=> [#rec{name = manu,country = france,job = bartender}]
+ets:match(countries, #rec{name='$1',country='$2',_='_'}).
+=>[[manu,france]]
+ets:match_object(countries, #rec{country=france,_='_'}). 
+=> [#rec{name = manu,country = france,job = bartender}]
+MS = ets:fun2ms(fun(#rec{name=N, country=C}) when C == france -> N end). 
+ets:select(countries, MS).                                              
+=> [manu]
+
+
+Visualizing tables
+-------------------
+Tables owned by the current node and connected nodes can be shown through the visualizer tool
+launched by calling tv:start().
+
+
+
+----------------------------------------------
+DETS tables
+
+
+Dets tables provide efficient file-based Erlang term storage.
+The size of Dets files cannot exceed 2 GB.
+
+Creating tables
+---------------
+dets:open_file(TableName, Options)
+
+Options:
+  {auto_save, Interval}   % in millisec, default is 3 minutes
+  {file, FileName}        % override default naming and location to save dets file
+  {repair, Bool}          % whether the table should be automatically repaired (if not properly closed)
+  {type, TableType}       % set (default), bag, duplicate_bag
+  {max_no_slots, Number}  % default 2,000,000; max 32,000,000.
+  {min_no_slots, Number}  % default 256
+  {ram_file, Bool}         % if need to populate the table with a lots of elts, then dets:sync(Name)
+
+example: 
+
+dets:open_file(food, [{type, bag}, {file, "/tmp/food"}]).
+dets:insert(food, {sweden, meatballs}).
+dets:lookup(food, sweden)
+dets:close(food).
+
+----------------------------------------------
+Distributed Programming
+
+
+
+manu@chleb:~$ erl -sname foo
+
+(foo@chleb)1>                                        % foo@chleb is the identifier of the node
+
+(foo@chleb)2> c(dist).
+{ok,dist}
+(foo@chleb)3> spawn('bar@chleb', dist, t, [self()]). % spawn dist:t() on node 'bar@chleb'
+<5922.44.0>
+
+if the process is named, messaging syntax is : {<name>, <node>} ! msg
+ 
+
+erlang:is_alive()  % is the node alive
+net_kernel:start([<name>,...])
+ner_kernel:stop()
+
+erl -sname <name> % short name (on local network)
+erl -name <name>  % long name
+
+nodes with long names can only communicate with other nodes with long names (similarly for short names)
+
+Communication and Security
+----------------------------------
+Two nodes wishing to communicate need to share the same cookie
+
+erl -sname foo -setcookie blah        % start node 'foo' with cookie 'blah'
+
+
+net_adm:ping(<node_name>).
+erlang:set_cookie(<node_name>, <cookie>).
+
+
+
+
+
+
+
+
+-----------------------------------
+OTP Behaviours
+
+gen_server behaviour
+*********************
+
+starting the server (these are synchronous):
+----------------------------------------------
+start(Module, Args, Options) 
+start_link(Module, Args, Options)
+start(Name, Module, Args, Options)      
+start_link(Name, Module, Args, Options)
+
+CallbackModule must have a function init(Args) -> {ok, LoopData}
+start_link() is similar but links to its parent (as behaviour should in OTP)
+
+passing messages
+-----------------
+call(Name, Message): 
+  synchronous function causing handle_call() to be called
+  -> {reply, Reply, NewLoopData} | {stop, Reason, Reply, NewLoopData} 
+
+cast(Name, Message): 
+  asynchronous function causing handl_cast() to be called
+  -> {noreply, NewLoopData} | {stop, Reason, NewLoopData}
+
+upon receiving message the server process calls handle_call() / handle_cast()
+ServerName is the local registered name of the server, its Pid or the tuple {global, Name}
+If the process calling the server gets no response withing 5 sec, it terminates.
+The timeout can be overidden with gen_server:call(ServerName, Message, Timeout)
+
+
+Non OTP-compliant messages
+--------------------------
+handle_info(Msg, LoopData) -> {noreply, NewLoopData} | {stop, Reason, NewLoopData}
+
+
+Termination
+-----------
+terminate(Reason, LoopData) -> ()
+called when handle_xxx return {stop, ...}, a good place to clean the LoopData of the server
+(for instance closing ets and dets tables)
+
+
+
+Supervisor behaviour
+*********************
+
+Starting
+========
+start_link(Name, Module, Args)
+start(Name, Module, Args)
+start_link(Module, Args)
+start(Module, Args)
+
+Name: registered name for the supervisor: {local, Name} or {global, Name}
+Module: name of the module where init/1 is placed
+Args: term passed to init/1 when it is called
+
+init/1 return a tuple: {ok, SupervisorSpecification, ChildSpecificationList}}
+
+SupervisorSpecification 
+-----------------------
+A tuple that specifies how to handle process crashes and restarts
+
+{RestartStrategy, AllowedRestarts, MaxSeconds}
+
+RestartStrategy can be:
+  one_for_one: restart only the child that has terminated
+  one_for_all: terminate all the children and restart them
+  rest_for_one: terminate all the children started after the child that crashed and restart them
+
+AllowedRestarts
+  limit the number of abnormal terminations the supervisor is allowed to handle in MaxSeconds
+  Beyond this limit, the supervisor terminates.
+
+ChildSpecificationList 
+-----------------------
+Specifies which children to start and monitor, how to terminate and restart them.
+Usually hard coded in the supervisor callback module.
+
+Each child specification is:
+{Id, {Module, Function, Arguments}, Restart, Shutdown, Type, ModuleList}
+
+Id: 
+unique identifier (not a Pid) for a particular child within a supervisor
+
+{Module, Function, Arguments}: 
+used by the supervisor to start the child
+
+Restart can be: 
+  transient: never restarted
+  temporary: restarted only on abnormal termination
+  permanent: always restarted
+
+ShutDown:
+  specify how many millisecs a behaviour trapping exits is allowed to execute in its terminate() callback
+  after receiving the shutdown signal from its supervisor (because of AllowedRestarts or RestartStrategy).
+  Beyond that time the process is killed unconditionally. Values can also be: infinity (for a supervisor process)
+  or brutal_kill for unconditional termination).
+
+Type can be:
+  worker | supervisor
+
+ModuleList:
+  list of modules implementing the process
+  used to determine which processes should be suspended during a software upgrading (usually include the
+  behavior callback module).
+  
+
+The function supervisor:check_childpecs/1 verify the syntax/semantics of a ChildSpecificationList 
+
+Dynamic Children
+================
+
+for a supervisor to create a child dynamically use:
+
+start_child(SupName, ChildSpec)
+terminate_child(SupName, Id)
+restart_child(SupName, Id)
+delete_child(SupName, Id)  (the ChildSpec is permanently removed from supervisor)
+
+SupName is the registered name of the supervisor or its Pid
+ChildSpec a single child specification tuple as described previously
+Id the unique child identifier defined in ChildSpec
+
+
+
+
+OTP Applications
+*****************
+
+A resource file associated with an application describe and specify its modules, registered processes, configuration data.
+
+application:which_applications() % list currently running apps
+
+Directory structure
+===================
+code:get_path() % each code path points to a specially structured directory of an OTP app
+
+src:
+  source code of all the modules in the application
+
+ebin:
+  all compiled beam files and the application resource file
+
+include:
+  all header files (hrl) intended for use outside the application
+  -include_lib("App/include/Name.hrl")
+
+priv:
+  non Erlang related resources
+  can be accessed with code:priv_dir(App)
+
+
+Application resource file
+=========================
+
+Starting and stopping applications
+==================================
+application:start(Appname)
+application:stop(Appname)
+
+
+Releases
+*****************
+systools:make_rel(Name, Options)
+  inspect/check the .app files listed in the .rel file.
+  Name.boot and Name.script files are produced
+
+Name.boot: a binary file that loads application modules and starts top level supervisors.
+Name.script: text version of .boot file
+
+
+
+
+
+-----------------------------------
+Mnesia
+
+
+
+-----------------------------------
+Socket Programming
+
+
+
+-----------------------------------
+Interfacing / Interoperability
+
+
+
+-----------------------------------
+Trace BIFs
+
+
+Trace events are received as mailbox messages of the form
+
+ {trace, Pid, Tag, Data1 [, Data2]}
+
+Only one process may receive trace events
+The tracer process is usually the process that called erlang:trace() (unless it redirected them to another process) 
+The tracer process cannot be traced.
+
+erlang:trace(PidSpec, Bool, TraceFlags)
+
+PidSpec defines the processes to be traced:
+  existing: all processes up to the call to trace()
+  new     : all processes spawned after the call to trace()
+  all     : all processes before and after the trace() call
+
+
+Bool: indicates if we want to enable or disable certain aspects of the tracing
+
+Process Trace Flags
+-------------------
+send         trace messages sent by a process : {trace, Pid, send, Message, To}
+'receive'    trace messages received by a process : {trace, Pid, 'receive', Msg}
+running      trace when process is preempted or scheduled : {trace, Pid, in|out, {M, F, Arity}}
+procs        trace the following process-related events:
+                {trace, Pid, spawn, Pid2, {M, F, Args}}
+                {trace, Pid, exit, Reason}
+                {trace, Pid, link | unlink, Pid2}
+                {trace, Pid, getting_linked | getting_unlinked, Pid2}
+                {trace, Pid, register | unregister, Pid2}
+
+Inheritance flags
+-----------------
+set_on_spawn : any process spawned by the process will inherit all the PT flags including set_on_spawn
+set_on_first_spawn: any process spawned by the process will inherit all the PT flags except set_on_spawn
+
+Garbage collection
+------------------
+garbage_collection   trace events related to GC: {trace, Pid, gc_start|gc_end, Info}
+
+Info is a list of tagged tuples containing (all sizes are in words):
+  heap_size:           used part of the current heap
+  heap_block_size:     size of the memory block that stores heap and stack
+  old_heap_size:       used part of the old heap
+  old_heap_block_size: size of the memory block that stores the old heap
+  stack_size:          actual stack size
+  recent_size:         size of the data that survived the previous GC
+  mbuf_size:           mailbox size
+
+timestamp            to have accurate records of when a trace event is generated, format is
+                     {MegaSeconds, Seconds, MicroSeconds}
+
+cpu_timestamp        Pid must be: all
+
+Tracing calls with the trace_pattern BIF
+----------------------------------------
+Enable tracing of local and global function calls
+Must be used in conjonction with erlang:trace(PidSpec, Bool,[call, return_to])
+  trace defines the process to monitor
+  trace_pattern defines the subset of functions to trace
+
+It generates messages of the form:
+  {trace, Pid, call, {M, F, Args}}       when function F in module M is called
+  {trace, Pid, return_to, {M, F, Args}}  when execution of function F is completed (base case for rec functions !)
+
+the arity flags turns {M, F, Args} to {M, F, Arity} (useful to reduce the size of messages)
+
+erlang:trace_pattern(MFA, Condition, FlagList)
+
+MFA can be {Module, Function, Arity}, {Module, Function, '_'}, {Module, '_', '_'}, {'_', '_', '_'}
+(modules must be loaded before trace_pattern is called)
+
+Condition: can be true (all functions in MFA) false (none) or a match specification
+
+FlagList: defines the the type of traced function, global (only exported), local (both exported and nonexported)
+The dbg Tracer
+---------------
+
