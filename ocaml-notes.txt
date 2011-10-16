@@ -15,10 +15,10 @@ val manu : person = {age = 37; name = "Emmanuel"}
 type person = { age : int; mutable name : string; }
 # let manu = { age = 37; name = "Emmanuel" };;
 val manu : person = {age = 37; name = "Emmanuel"}
-# manu.name <- manu.name ^ " Delaborde";;
+# manu.name <- manu.name ^ " Rousseau";;
 - : unit = ()
 # manu.name ;;
-- : string = "Emmanuel Delaborde"
+- : string = "Emmanuel Rousseau"
 
 
 References
@@ -28,14 +28,14 @@ References
 val name : string ref = {contents = "Manu"}
 # name.contents ;;
 - : string = "Manu"
-# name := !name ^ " Delaborde" ;; 
+# name := !name ^ " Rousseau" ;; 
 (* or *)
-# name.contents <- !name ^ " Delaborde" ;;
+# name.contents <- !name ^ " Rousseau" ;;
 - : unit = ()
 # name ;;
-- : string ref = {contents = "Manu Delaborde"}
+- : string ref = {contents = "Manu Rousseau"}
 # !name ;;
-- : string = "Manu Delaborde"
+- : string = "Manu Rousseau"
 
 
 Arrays

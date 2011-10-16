@@ -1122,6 +1122,15 @@ dets:insert(food, {sweden, meatballs}).
 dets:lookup(food, sweden)
 dets:close(food).
 
+
+
+
+
+
+
+
+
+
 ----------------------------------------------
 Distributed Programming
 
@@ -1157,6 +1166,7 @@ erl -sname foo -setcookie blah        % start node 'foo' with cookie 'blah'
 
 net_adm:ping(<node_name>).
 erlang:set_cookie(<node_name>, <cookie>).
+
 
 
 
@@ -1435,6 +1445,405 @@ MFA can be {Module, Function, Arity}, {Module, Function, '_'}, {Module, '_', '_'
 Condition: can be true (all functions in MFA) false (none) or a match specification
 
 FlagList: defines the the type of traced function, global (only exported), local (both exported and nonexported)
+
 The dbg Tracer
 ---------------
+dbg:h().
+
+The following help items are available:
+   p, c
+       - Set trace flags for processes
+   tp, tpl, ctp, ctpl, ctpg, ltp, dtp, wtp, rtp
+       - Manipulate trace patterns for functions
+   n, cn, ln
+       - Add/remove traced nodes.
+   tracer, trace_port, trace_client, get_tracer, stop, stop_clear
+       - Manipulate tracer process/port
+   i
+       - Info
+
+call dbg:h(Item) for brief help a brief description of one of the items above.
+
+
+dbg:tracer() : starts tracing process
+
+dbg:stop() : stop the tracing
+
+dbg:stop_clear() : stop the tracing and clear the flags 
+
+dbg:p(PidSpec, TraceFlags)
+  specify which process to trace and which trace events to generate
+
+PidSpec: 
+  Pid - a specific process id
+  all - all processes
+  new - all processes spawned after the call to dbg
+  existing - all processes existing before the call to dbg
+  Alias - a registered process alias
+  {X,Y,Z} - the process with id <X.Y.Z> (or "<X.Y.Z>" = pid_to_list(Pid))
+
+TraceFlags:
+  s - sent messages
+  r - received messages
+  m - sent and received messages
+  p - process related events (spawning, termination, linking, registration)
+  c - global and local calls according to the patterns set in dbg:tp/2
+  sos, sof - set_on_spawn and set_on_first_spawn
+  sol, sofl - set_on_link and set_on_first_link
+  all - all trace flags
+  clear - clear all trace flags 
+
+  
+dbg:c(Mod, fun, Args, TraceFlags)
+  trace and profile a function
+
+dbg:tp({Mod, fun, Arity}, MatchSpec)
+
+dbg:tpl({Mod, fun, Arity}, MatchSpec)
+
+Redirecting to sockets and binary files
+---------------------------------------
+to a socket:
+Pid = tracer(port, PortFun)
+where PortFun = dbg:trace_port(ip, Port)
+where Port = PortNumber | {PortNumber, QueueSize}
+
+to connect the client:
+dbg:trace_client(ip, Arg) 
+where Arg = PortNumber | {HostName, PortNumber}
+
+to a binary file:
+Pid = tracer(port, PortFun)
+where PortFun = dbg:trace_port(file, FileOptions)
+FileOptions = FileName | WrapSpec
+WrapSpec = {FileName, wrap, FileSuffix} results in 8 rotating 128KB files 
+         | {FileName, wrap, FileSuffix, WrapTrigger, WrapCount}
+                 where WrapTrigger is size KB or {time, Milliseconds}
+
+to connect the client:
+dbg:trace_client(file, FileName) % all trace events written so far
+dbg:trace_client(followfile, FileName) % continually reads from file
+
+to handle your own trace events use:
+dbg:trace_client(Type, Arg, {HandlerFun, Data})
+
+to stop:
+dbg:stop_trace_client(Pid) % Pid is returned by tracer/2
+
+
+
+
+--------------------------------
+Types and Documentation
+
+
+Erlang type notation
+--------------------
+any()          	all erlang data values
+atom()		
+binary()
+boolean()	true | false
+byte()		0..255
+char()		unicode subset of integer()
+deep_string()	[char + deep_string()]
+float()		
+function()
+integer()
+pos_integer()
+list(T)		also [T]
+nil()		[]
+none()		void type
+number()	float() + integer()
+pid()
+port()
+reference()
+string()	[char()]
+tuple()	
+atom		any atome can be used as type (type ok has the elt ok)
+| or +		union of two types
+#rec{}		record type named rec
+{T1,T2,...}
+[T]
+L..U		range of integers from L to U
+(Argument_types) -> Result_type
+
+examples:
+
+-type(A :: 1..10).
+-type(B :: 2..20).
+-spec(double(N::A) -> B).
+double(N) -> 2 * N.
+
+Typer
+------
+check validity of -spec annotations and infer types of functions in modules
+
+$ typer user.erl usr_db.erl
+
+
+Dialyzer
+--------
+$ dialyzer -c *.erl
+$ dialyzer -r some/dir
+
+$ dialyzer --dump_callgraph call.dot -c *.erl
+$ dot -Tps call.dot > call.ps
+$ evince call.ps 
+
+to speed up operation it's possible to build a persistent lookup table (plt)
+it's possible to add/remove to the plt without recompiling everything (see online docs: http://www.erlang.org/doc/apps/dialyzer/dialyzer_chapter.html)
+
+
+Documentation with EDoc
+------------------------
+Module tags
+-----------
+% @author Name <email> | [website]
+% @doc one-liner description of module here
+% extra lines describing module here
+% @reference can include HTML links
+% @version version number
+% @since when the module was introdunced in the system
+
+Function tags
+------------- 
+% @doc documentation for a function using HTML markup (first line is used as overview)
+% @throws description of exception types
+-spec().
+
+generic tags
+------------
+-type().
+% @todo todo notes (do not appear in generated documentation by default)
+
+EDoc macros
+-----------
+{@macro}, {@macro arg}
+@date, @time, @module, @version, {@link reference. description}
+ex: {@link set_status/2. 'set_status/2'} gives a link to the doc for the set_status/2 function in the same module.
+
+running EDoc
+------------
+1> edoc:files(["usr.erl","usr_db.erl"]).
+generate doc as HTML files
+
+
+
+
+--------------------------------
+Eunit
+
+How to use
+-----------
+in my_mod_tests.hrl:
+
+-define(NOTEST, false).                    % handy single point of control for tests
+-include_lib("eunit/include/eunit.hrl").   
+
+This creates an exported function test() that can be used to run all the unit tests defined in the module. Causes all functions whose names match ..._test() or ..._test_() to be automatically exported from the module. Makes all the preprocessor macros of EUnit available, to help writing tests. 
+
+
+Writing simple test functions
+-----------------------------
+The EUnit framework makes it extremely easy to write unit tests in Erlang. There are a few different ways of writing them, though, so we start with the simplest:
+
+A function with a name ending in ..._test() is recognized by EUnit as a simple test function - it takes no arguments, and its execution either succeeds (returning some arbitrary value that EUnit will throw away), or fails by throwing an exception of some kind (or by not terminating, in which case it will be aborted after a while).
+
+reverse_nil_test() -> [] = lists:reverse([]).
+
+1> my_mod:test(). % will run EUnit on all the tests defined in the module
+
+Assert macros
+--------------
+assert(BooleanExpr) 
+?assert(Expression) evaluate Expression, and if that does not evaluate to true, it will throw an exception.
+
+assertEqual(Expr1, Expr2)
+assertNot(BooleanExpr)
+assertMatch(GuardedPattern, Expr)
+
+
+assertError(TermPattern, Expr)
+assertExit(TermPattern, Expr)
+assertThrow(TermPattern, Expr)
+
+Evaluates Expr, catching any exception and testing that it matches the expected ClassPattern:TermPattern. If the match fails, or if no exception is thrown by Expr, an informative exception will be generated; see the assert macro for further details. The assertError, assertExit, and assertThrow macros, are equivalent to using assertException with a ClassPattern of error, exit, or throw, respectively.
+
+Debugging macros
+----------------
+debugVal(Expr) % print src code and current value, result is the value
+debugtime(Text, Expr) % print Text followed by time to execute Expr
+
+
+Macros for running external commands
+-------------------------------------
+assertCmd(CommandString)
+assertCmdStatus(N, CommandString)
+assertCmdOutput(Text, CommandString)
+cmd(CommandString)
+
+example:
+{setup,
+    fun () -> ?cmd("mktemp") end,
+    fun (FileName) -> ?cmd("rm " ++ FileName) end,
+    ...}
+
+
+
+
+Putting tests in separate modules
+---------------------------------
+If you want to separate your test code from your normal code (at least for testing the exported functions), you can simply write the test functions in a module named m_tests (note: not m_test), if your module is named m. Then, whenever you ask EUnit to test the module m, it will also look for the module m_tests and run those tests as well.
+
+
+Writing test generating functions
+---------------------------------
+A drawback of simple test functions is that you must write a separate function (with a separate name) for each test case. A more compact way of writing tests (and much more flexible, as we shall see), is to write functions that return tests, instead of being tests.
+
+A function with a name ending in ..._test_() (note the final underscore) is recognized by EUnit as a test generator function. Test generators return a representation of a set of tests to be executed by EUnit.
+
+
+Representing a test as data The most basic representation of a test is a single fun-expression that takes no arguments. For example, the following test generator:
+
+basic_test_() ->
+  fun () -> ?assert(1 + 1 =:= 2) end.
+
+will have the same effect as the following simple test:
+
+simple_test() ->
+  ?assert(1 + 1 =:= 2).
+
+Underscore-prefixed macros create test objects.
+The above example can then simply be written:
+
+basic_test_() ->
+  ?_assert(1 + 1 =:= 2).
+
+An example
+----------
+-module(fib).
+-export([fib/1]).
+-include_lib("eunit/include/eunit.hrl").
+fib(0) -> 1;
+fib(1) -> 1;
+fib(N) when N > 1 -> fib(N-1) + fib(N-2).
+fib_test_() ->
+       [?_assert(fib(0) =:= 1),
+	?_assert(fib(1) =:= 1),
+	?_assert(fib(2) =:= 2),
+	?_assert(fib(3) =:= 3),
+	?_assert(fib(4) =:= 5),
+	?_assert(fib(5) =:= 8),
+	?_assertException(error, function_clause, fib(-1)),
+	?_assert(fib(31) =:= 2178309)
+       ].
+
+
+
+Eunit test representation
+-------------------------
+
+Simple test objects
+--------------------
+A nullary functional value (i.e., a fun that takes zero arguments). Examples:
+   fun () -> ... end
+   fun some_function/0
+   fun some_module:some_function/0
+A pair of atoms {ModuleName, FunctionName}
+
+Test sets and deep lists
+------------------------
+A test set can be easily created by placing a sequence of test objects in a list
+
+Titles
+------
+Any test or test set T can be annotated with a title, by wrapping it in a pair {Title, T}, where Title is a string.
+
+Primitives
+----------
+{module, ModuleName}
+This composes a test set from the exported test functions of the named module
+
+{application, AppName::atom(), Info::list()}
+This is a normal Erlang/OTP application descriptor, as found in an .app file. The resulting test set consists of the modules listed in the modules entry in Info.
+
+{application, AppName::atom()}
+This creates a test set from all the modules belonging to the specified application, by consulting the application's .app file
+
+Path::string()
+A single string represents the path of a file or directory, and is equivalent to {file, Path}, or {dir, Path}, respectively, depending on what Path refers to in the file system.
+
+{file, FileName::string()}
+If FileName has a suffix that indicates an object file (.beam), EUnit will try to reload the module from the specified file and test it. Otherwise, the file is assumed to be a text file containing test specifications, which will be read using the standard library function file:path_consult/2. Unless the file name is absolute, the file is first searched for relative to the current directory, and then using the normal search path (code:get_path()). This means that the names of typical "app" files can be used directly, without a path, e.g., "mnesia.app".
+
+{dir, Path::string()}
+This tests all object files in the specified directory, as if they had been individually specified using {file, FileName}.
+
+{generator, GenFun::(() -> Tests)}
+The generator function GenFun is called to produce a test set.
+
+{generator, ModuleName::atom(), FunctionName::atom()}
+The function ModuleName:FunctionName() is called to produce a test set.
+
+Control
+--------
+The following representations control how and where tests are executed:
+
+{spawn, Tests}
+Runs the specified tests in a separate subprocess, while the current test process waits for it to finish. This is useful for tests that need a fresh, isolated process state.
+
+{spawn, Node::atom(), Tests}
+Like {spawn, Tests}, but runs the specified tests on the given Erlang node.
+
+{timeout, Time::number(), Tests}
+Runs the specified tests under the given timeout. Time is in seconds; e.g., 60 means one minute and 0.1 means 1/10th of a second. If the timeout is exceeded, the unfinished tests will be forced to terminate. Note that if a timeout is set around a fixture, it includes the time for setup and cleanup, and if the timeout is triggered, the entire fixture is abruptly terminated (without running the cleanup).
+
+{inorder, Tests}
+Runs the specified tests in strict order. Also see {inparallel, Tests}. By default, tests are neither marked as inorder or inparallel, but may be executed as the test framework chooses.
+
+{inparallel, Tests}
+Runs the specified tests in parallel (if possible). Also see {inorder, Tests}.
+
+{inparallel, N::integer(), Tests}
+Like {inparallel, Tests}, but running no more than N subtests simultaneously.
+
+Fixtures
+--------
+A "fixture" is some state that is necessary for a particular set of tests to run. EUnit's support for fixtures makes it easy to set up such state locally for a test set, and automatically tear it down again when the test set is finished, regardless of the outcome (success, failures, timeouts, etc.).
+
+
+Lazy generators
+---------------
+
+nullary fun()
+{Module, Function}
+
+test sets (lists)
+
+primitives ?
+
+control
+{spawn, Tests}
+{timeout, Time, Tests} % Time in seconds
+{inorder, Tests}
+{inparallel, Tests}
+
+Fixtures
+---------
+my_test_() ->
+  {spawn,
+    {setup,
+       fun() -> ... end, % setup
+       fun() -> ... end, % cleanup
+       ?_assertMatch(...)
+    }
+  }.
+
+
+
+
+
+
+
+
 
